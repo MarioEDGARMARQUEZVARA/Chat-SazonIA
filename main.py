@@ -529,7 +529,9 @@ G.add_edges_from(relaciones)
 class PreguntaRequest(BaseModel):
     pregunta: str
 
-
+@app.get("/")
+def home():
+    return {"mensaje": "Bot de cocina activo."}
 @app.post("/pregunta")
 def responder_pregunta(pregunta_req: PreguntaRequest):
     pregunta = pregunta_req.pregunta.lower()
