@@ -676,7 +676,7 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
         ]
     mensaje = (
         "Hola, soy un asistente que te ayudará a saber más sobre cocina. "
-        "Puedo responder las siguientes preguntas:\n"
+        "Puedo responder las siguientes preguntas:\n ¿Qué son los ? "
         + "\n".join(f"\n - {p}" for p in posibles_preguntas)
     )
 
