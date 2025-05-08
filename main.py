@@ -531,14 +531,14 @@ class PreguntaRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {"mensaje": "Bot de cocina activo."}
+    return {"mensaje": "Chat de cocina activo."}
 @app.post("/pregunta")
 def responder_pregunta(pregunta_req: PreguntaRequest):
     pregunta = pregunta_req.pregunta.lower()
     # pREGUNTA ¿QUE SON?
     
     for nodo in G.nodes:
-        if f"qué son las {nodo.lower()}" in pregunta:
+        if f"qué son las {nodo.lower()}" in pregunta or f"que son los {nodo.lowler()}" in pregunta:
             subcategorias = list(G.successors(nodo))
             if subcategorias:
                 return JSONResponse(
@@ -562,7 +562,7 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
                     }
                 )
     for nodo in G.nodes:
-        if f"cuál es la categoría de {nodo.lower()}" in pregunta:
+        if f"cuál es la categoría de {nodo.lower()}" in pregunta or f"cuales son las categorias de {nodo.lowler()}" in pregunta:
             padres = list(G.predecessors(nodo))
             if padres:
                 return JSONResponse(
@@ -669,7 +669,6 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
             "¿Qué ingredientes tiene ?",
             "¿Qué ingredientes comparten  y ?",
             "¿Qué platillos contienen los ingredientes y ?",
-            "¿Cuál es la categoría de?",
             "¿Cuáles son los ingredientes principales de?",
             "¿Es un ingrediente o un platillo?",
             "¿Qué contiene ?",
@@ -677,7 +676,7 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
         ]
     mensaje = (
         "Hola, soy un asistente que te ayudará a saber más sobre cocina. "
-        "Puedo responder las siguientes preguntas:\n\n"
+        "Puedo responder las siguientes preguntas:\n"
         + "\n".join(f"\n - {p}" for p in posibles_preguntas)
     )
 
