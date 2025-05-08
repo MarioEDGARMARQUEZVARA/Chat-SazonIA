@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Bot</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #chat-container {
+            width: 800px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-header {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 38px;
+            font-weight: bold;
+        }
+
+        #mensajes {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mensaje {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            max-width: 80%;
+            display: inline-block;
+            font-size: 20px;
+        }
+
+        .mensaje.usuario {
+            background: #007bff;
+            color: white;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .mensaje.bot {
+            background: #e9ecef;
+            align-self: flex-start;
+            text-align: left;
+        }
+
+        #input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            background: white;
+            align-items: center;
+        }
+
+        #entradaPregunta {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 26px;
+            outline: none;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 26px;
+        } 
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #microfono {
+            background: #0056b3;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #microfono:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <div id="chat-header">Chat Bot</div>
+        <div id="mensajes"></div>
+        <div id="input-area">
+            <input type="text" id="entradaPregunta" placeholder="Escribe tu pregunta...">
+            <button onclick="enviarPregunta()">Enviar</button>
+            <button id="startRecordingBtn" onclick="startRecording()">Iniciar grabación</button>
+            <button id="stopRecordingBtn" style="display:none;" onclick="stopRecording()">Detener grabación</button>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let recording = false;
+        let audioUrl = "";
+        let mediaStream; // Para detener el stream correctamente
+
+        async function enviarPregunta() {
+            const preguntaEntrada = document.getElementById("entradaPregunta");
+            const pregunta = preguntaEntrada.value.trim();
+            if (!pregunta) return;
+
+            agregarMensaje(pregunta, "usuario", false); // No mostrar audio
+            preguntaEntrada.value = "";
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/pregunta", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pregunta })
+                });
+
+                if (!response.ok) throw new Error("Error en la petición");
+
+                const data = await response.json();
+                agregarMensaje(data.respuesta, "bot", false); // No mostrar audio
+            } catch (error) {
+                console.error("Error:", error);
+                agregarMensaje("Ocurrió un error al obtener la respuesta.", "bot", false); // No mostrar audio
+            }
+        }
+
+        function agregarMensaje(texto, clase, mostrarAudio = false) {
+            const messagesDiv = document.getElementById("mensajes");
+            const messageElement = document.createElement("div");
+            messageElement.className = "mensaje " + clase;
+
+            if (mostrarAudio && audioUrl) {
+                // Mostrar el reproductor de audio y el texto
+                messageElement.innerHTML = `Audio grabado: <audio src="${audioUrl}" controls></audio><br>${texto}`;
+            } else {
+                // Mostrar solo el texto
+                messageElement.textContent = texto;
+            }
+
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function startRecording() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(mediaStream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                    audioUrl = URL.createObjectURL(audioBlob);
+
+                    // Enviar el audio al API de Python
+                    const formData = new FormData();
+                    formData.append("audio_file", audioBlob, "grabacion.webm");
+
+                    try {
+                        const response = await fetch("http://127.0.0.1:8000/reconoce", {
+                            method: "POST",
+                            body: formData,
+                        });
+
+                        if (!response.ok) throw new Error("Error en la petición");
+
+                        const data = await response.json();
+                        agregarMensaje(data.respuesta, "bot", true); // Mostrar audio
+                    } catch (error) {
+                        console.error("Error:", error);
+                        agregarMensaje("Ocurrió un error al procesar el audio.", "bot", true); // Mostrar audio
+                    }
+                };
+                mediaRecorder.start();
+                recording = true;
+                document.getElementById("stopRecordingBtn").style.display = 'inline';
+                document.getElementById("startRecordingBtn").style.display = 'none';
+            } catch (error) {
+                console.error("Error al iniciar la grabación:", error);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && recording) {
+                mediaRecorder.stop();
+                recording = false;
+                mediaStream.getTracks().forEach(track => track.stop()); // Detener el stream
+                document.getElementById("stopRecordingBtn").style.display = 'none';
+                document.getElementById("startRecordingBtn").style.display = 'inline';
+            }
+        }
+    </script>
+</body>
+
+</html>
