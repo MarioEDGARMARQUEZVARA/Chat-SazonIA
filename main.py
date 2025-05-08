@@ -538,7 +538,7 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
     # pREGUNTA ¿QUE SON?
     
     for nodo in G.nodes:
-        if f"qué son las {nodo.lower()}" in pregunta or f"que son los {nodo.lowler()}" in pregunta:
+        if f"qué son las {nodo.lower()}" in pregunta or f"que son los {nodo.lower()}" in pregunta:
             subcategorias = list(G.successors(nodo))
             if subcategorias:
                 return JSONResponse(
@@ -562,7 +562,7 @@ def responder_pregunta(pregunta_req: PreguntaRequest):
                     }
                 )
     for nodo in G.nodes:
-        if f"cuál es la categoría de {nodo.lower()}" in pregunta or f"cuales son las categorias de {nodo.lowler()}" in pregunta:
+        if f"cuál es la categoría de {nodo.lower()}" in pregunta or f"cuales son las categorias de {nodo.lower()}" in pregunta:
             padres = list(G.predecessors(nodo))
             if padres:
                 return JSONResponse(
